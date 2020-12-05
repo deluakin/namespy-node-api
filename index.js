@@ -1,8 +1,13 @@
+//import required libraries
 const axios = require('axios');
 const express = require('express')
+
+//initialize express app
 const app = express()
+
 const port = 3000
 
+//function to get webscore data
 async function getWebScore(name) {
     try {
       return await axios.get('https://namespy-api-mu7u3ykctq-lz.a.run.app/v1/web_score?input='+name+'&filter_input=1&use_proxy=1&collected_data=1')
@@ -11,6 +16,7 @@ async function getWebScore(name) {
     }
 }
 
+//function to get webtitle data
 async function getJobTitle(name) {
     try {
       return await axios.get('https://namespy-api-mu7u3ykctq-lz.a.run.app/v1/job_title?input='+name+'&filter_input=0&use_proxy=1&ner_threshold=0.50')
@@ -19,8 +25,12 @@ async function getJobTitle(name) {
     }
 }
 
+//endpoint route
 app.get('/', (req, res) => {
+    //get name from query string parameter
     const name = req.query.name;
+
+    //check if name is passed
     if(name === undefined){
         res.json({
             "response": "Failed",
@@ -29,22 +39,35 @@ app.get('/', (req, res) => {
         return;
     }
 
-    console.log("Finding data for " + name)
+    console.log("Finding data for " + name + "...")
+
+    //concurrently call but api
     Promise.all([getWebScore(name), getJobTitle(name)])
         .then(function (results) {
             const webScore = (results[0] !== undefined) ? results[0].data : undefined;
             const jobTitle = (results[1] !== undefined) ? results[1].data : undefined;
 
-            if(webScore === undefined)
-                console.log("No webscore data fetch")
+            if(webScore === undefined){
+                res.json({
+                    "response": "Not Found"
+                })
+                return;
+            }
             
-            if(jobTitle === undefined)
-                console.log("No jobtitle data fetch")
+            // if(jobTitle === undefined){
+            //     res.json({
+            //         "response": "Not Found"
+            //     })
+            //     return;
+            // }
             
-            if(webScore !== undefined || webScore.hasOwnProperty('warning'))
-                console.log("No record found for " + name)
+            if(webScore !== undefined || webScore.hasOwnProperty('warning')){
+                res.json({
+                    "response": "No record found for " + name
+                })
+            }
 
-
+            //console out data
             if(webScore.data != undefined){
                 const upperName = name.toUpperCase()
                 console.log("\n\n")
@@ -58,6 +81,7 @@ app.get('/', (req, res) => {
             }
 
 
+            //response to browser to end request
             res.json({
                 "response": "DONE"
             })
